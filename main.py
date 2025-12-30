@@ -92,15 +92,41 @@ for i, f in enumerate(files, 1):
     location = "[trades]" if f in files_trades else "[текущая]"
     print(f"[{i}] {location} {f.name}")
 
-selection = input("\nВыбери файлы (например: 1 или 1,2,3): ").strip()
-selected_indices = [int(x.strip()) - 1 for x in selection.split(',')]
-selected_files = [files[i] for i in selected_indices if i < len(files)]
+while True:
+    selection = input("\nВыбери файлы (например: 1 или 1,2,3): ").strip()
+    if not selection:
+        print(f"{Fore.RED}Ошибка: Ввод не может быть пустым.{Style.RESET_ALL}")
+        continue
+    
+    try:
+        selected_indices = []
+        for x in selection.replace(" ", "").split(','):
+            if not x:
+                raise ValueError("Некорректный формат")
+            idx = int(x)
+            if idx < 1 or idx > len(files):
+                raise ValueError(f"Номер {idx} вне диапазона 1-{len(files)}")
+            file_index = idx - 1
+            if file_index in selected_indices:
+                raise ValueError(f"Номер {idx} повторяется")
+            selected_indices.append(file_index)
+        break
+    except ValueError as e:
+        error_msg = str(e) if "вне диапазона" in str(e) or "повторяется" in str(e) or "Некорректный" in str(e) else f"Введите числа от 1 до {len(files)}, разделённые запятой"
+        print(f"{Fore.RED}Ошибка: {error_msg}.{Style.RESET_ALL}")
 
-print("\nФильтр активов:")
-print("[1] Только OTC")
-print("[2] Только не-OTC")
-print("[3] Всё вместе")
-filter_choice = input("→ ").strip()
+selected_files = [files[i] for i in selected_indices]
+
+while True:
+    print("\nФильтр активов:")
+    print("[1] Только OTC")
+    print("[2] Только не-OTC")
+    print("[3] Всё вместе")
+    filter_choice = input("→ ").strip()
+    if filter_choice in ['1', '2', '3']:
+        break
+    else:
+        print(f"{Fore.RED}Ошибка: Введите 1, 2 или 3.{Style.RESET_ALL}")
 
 # ====================== ЗАГРУЗКА ДАННЫХ ======================
 df_list = []
