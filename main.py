@@ -9,6 +9,11 @@ warnings.filterwarnings("ignore")
 # Инициализация colorama для Windows
 init(autoreset=True)
 
+__version__ = "1.0.0"
+__app_name__ = "Binary Options Winrate Analyzer"
+
+print(f"{Fore.CYAN}{__app_name__}{Style.RESET_ALL} {Fore.YELLOW}v{__version__}{Style.RESET_ALL}")
+
 # Функции для цветного вывода
 def color_profit(value):
     if value > 0:
