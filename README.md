@@ -1,7 +1,7 @@
 # 📊 Binary Options Winrate Analyzer
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
-![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)
+![Version](https://img.shields.io/github/v/release/OlyoshaOlyosha/Binary-Options-Winrate-Analyzer?label=Version&color=orange)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)
 
 **Мощный аналитический инструмент для торговли бинарными опционами на платформе Pocket Option.**  
