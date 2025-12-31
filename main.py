@@ -1,8 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
 from pathlib import Path
 import configparser
 import warnings
+import locale
 from colorama import Fore, Style, init
 warnings.filterwarnings("ignore")
 
@@ -53,6 +55,16 @@ except:
 
 # Настройка стиля графиков
 plt.style.use('dark_background')
+
+# Настройка локали для русских месяцев
+try:
+    locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+except locale.Error:
+    try:
+        locale.setlocale(locale.LC_TIME, 'Russian_Russia.1251')
+    except locale.Error:
+        pass
+
 plt.rcParams['figure.figsize'] = (config.getint('graph_settings', 'figure_width'), config.getint('graph_settings', 'figure_height'))
 plt.rcParams['figure.facecolor'] = config.get('graph_settings', 'background_color')
 plt.rcParams['axes.facecolor'] = config.get('graph_settings', 'plot_background')
@@ -275,6 +287,7 @@ plt.axhline(y=50, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7,
 plt.title('Винрейт по дням', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Винрейт, %', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
+plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5)
 plt.legend(fontsize=10)
@@ -361,6 +374,7 @@ plt.axhline(y=current_balance, color=COLOR_THRESHOLD, linestyle='--', linewidth=
 plt.title('Прогресс баланса', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Баланс', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
+plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5)
 plt.legend(fontsize=10)
@@ -373,6 +387,7 @@ plt.axhline(y=0, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
 plt.title('Кумулятивная прибыль', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Прибыль', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
+plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5)
 
@@ -383,6 +398,7 @@ plt.axhline(y=0, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
 plt.title('Прибыль по дням', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Прибыль', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
+plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5, axis='y')
 
