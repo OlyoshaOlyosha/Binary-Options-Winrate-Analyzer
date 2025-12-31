@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
+from matplotlib.ticker import AutoLocator
 from pathlib import Path
 import configparser
 import warnings
@@ -272,7 +272,9 @@ print("="*60 + "\n")
 
 # ====================== ГРАФИКИ ======================
 df = df.sort_values('Время открытия').reset_index(drop=True)
-fig = plt.figure(figsize=(18, 12))  # Увеличиваем размер для 3x3 сетки
+dates = sorted(day_stats.index)
+formatted_dates = [d.strftime('%d %b.') for d in dates]
+fig = plt.figure(figsize=(18, 12))
 
 # Цвета из конфига
 COLOR_WIN = config.get('colors', 'win')
@@ -282,13 +284,11 @@ COLOR_THRESHOLD = config.get('colors', 'threshold')
 
 # 1. Винрейт по дням (линия прогресса)
 plt.subplot(3, 3, 1)
-plt.plot(day_stats.index, day_stats['Винрейт'], marker='o', color=COLOR_WIN, linewidth=3, markersize=10, markeredgecolor='white', markeredgewidth=1.5)
+plt.plot(range(len(dates)), day_stats['Винрейт'].loc[dates], marker='o', color=COLOR_WIN, linewidth=3, markersize=10, markeredgecolor='white', markeredgewidth=1.5)
 plt.axhline(y=50, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7, label='50% порог')
 plt.title('Винрейт по дням', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Винрейт, %', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
-plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
-plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5)
 plt.legend(fontsize=10)
 plt.ylim(0, 100)
@@ -329,10 +329,13 @@ plt.title(f'Распределение Win/Loss\n({win_count}W / {loss_count}L)'
 
 # 5. Винрейт по часам дня
 plt.subplot(3, 3, 5)
+
+# Создаём полный диапазон 0-23 часов
 hour_all_stats = df.groupby('Час').agg(
-    Винрейт=('Результат', lambda x: (x=='Win').mean()*100)
-).round(2)
-colors_hour = [COLOR_WIN if x >= 50 else COLOR_LOSS for x in hour_all_stats['Винрейт']]
+    Винрейт=('Результат', lambda x: (x == 'Win').mean() * 100)
+).reindex(range(24), fill_value=float('nan')).round(2)
+
+colors_hour = [COLOR_WIN if x >= 50 else COLOR_LOSS if not pd.isna(x) else '#333333' for x in hour_all_stats['Винрейт']]
 plt.bar(hour_all_stats.index, hour_all_stats['Винрейт'], color=colors_hour, edgecolor='white', linewidth=1.5)
 plt.axhline(y=50, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
 plt.title('Винрейт по часам дня', fontsize=15, fontweight='bold', pad=15)
@@ -340,6 +343,7 @@ plt.xlabel('Час', fontsize=12)
 plt.ylabel('Винрейт, %', fontsize=12)
 plt.ylim(0, 100)
 plt.grid(True, alpha=0.5, axis='y')
+plt.xticks(range(24), [str(h) for h in range(24)], rotation=0, ha='center')
 
 # 6. Прогресс по неделям (если несколько недель)
 plt.subplot(3, 3, 6)
@@ -349,16 +353,17 @@ week_stats = df.groupby('Неделя').agg(
     Сделок=('Результат', 'count')
 ).round(2)
 if len(week_stats) > 1:
-    plt.plot(week_stats.index, week_stats['Винрейт'], marker='o', color=config.get('colors', 'week_progress'), linewidth=4, markersize=12, markeredgecolor='white', markeredgewidth=2)
+    plt.plot(range(len(week_stats)), week_stats['Винрейт'], marker='o', color=config.get('colors', 'week_progress'), linewidth=4, markersize=12, markeredgecolor='white', markeredgewidth=2)
     plt.axhline(y=50, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
     for i, (week, row) in enumerate(week_stats.iterrows()):
-        plt.text(week, row['Винрейт'] + 3, f"{row['Винрейт']:.1f}%\n({int(row['Сделок'])})", 
-                ha='center', fontsize=11, color='white', weight='bold')
+        plt.text(i, row['Винрейт'] + 3, f"{row['Винрейт']:.1f}%\n({int(row['Сделок'])})",
+            ha='center', fontsize=10, color='white', weight='bold')
     plt.title('Прогресс по неделям', fontsize=15, fontweight='bold', pad=15)
     plt.ylabel('Винрейт, %', fontsize=12)
     plt.xlabel('Неделя', fontsize=12)
     plt.ylim(0, 100)
     plt.grid(True, alpha=0.5)
+    plt.xticks(range(len(week_stats)), week_stats.index)
 else:
     plt.text(0.5, 0.5, 'Недостаточно данных\n(нужно >1 недели)', 
             ha='center', va='center', fontsize=14, color='#888888', weight='bold')
@@ -369,40 +374,42 @@ else:
 # 7. Прогресс баланса
 plt.subplot(3, 3, 7)
 daily_balance = df_sorted.groupby('Дата')['Баланс'].last()
-plt.plot(daily_balance.index, daily_balance.values, marker='o', color=config.get('colors', 'line'), linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
 plt.axhline(y=current_balance, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7, label=f'Текущий баланс: {current_balance}')
+plt.plot(range(len(dates)), daily_balance.loc[dates], marker='o', color=config.get('colors', 'line'), linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
 plt.title('Прогресс баланса', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Баланс', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
-plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
-plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5)
 plt.legend(fontsize=10)
 
 # 8. Кумулятивная прибыль
 plt.subplot(3, 3, 8)
 daily_cumulative_profit = df_sorted.groupby('Дата')['Прибыль числом'].cumsum().groupby(df_sorted['Дата']).last()
-plt.plot(daily_cumulative_profit.index, daily_cumulative_profit.values, marker='o', color=COLOR_WIN, linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
+plt.plot(range(len(dates)), daily_cumulative_profit.loc[dates], marker='o', color=COLOR_WIN, linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
 plt.axhline(y=0, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
 plt.title('Кумулятивная прибыль', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Прибыль', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
-plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
-plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5)
 
 # 9. Распределение прибыли по дням
 plt.subplot(3, 3, 9)
-plt.bar(day_stats.index, day_stats['Прибыль'], color=[COLOR_WIN if x > 0 else COLOR_LOSS for x in day_stats['Прибыль']], edgecolor='white', linewidth=1.5)
+plt.bar(range(len(dates)), day_stats['Прибыль'].loc[dates], color=[COLOR_WIN if x > 0 else COLOR_LOSS for x in day_stats['Прибыль'].loc[dates]], edgecolor='white', linewidth=1.5)
 plt.axhline(y=0, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
 plt.title('Прибыль по дням', fontsize=15, fontweight='bold', pad=15)
 plt.ylabel('Прибыль', fontsize=12)
 plt.xlabel('Дата', fontsize=12)
-plt.gca().xaxis.set_major_formatter(DateFormatter('%d %b.'))
-plt.xticks(rotation=45)
 plt.grid(True, alpha=0.5, axis='y')
 
 plt.tight_layout(pad=2.0)
+
+for ax in fig.get_axes():
+    if ax.get_xlabel() == 'Дата':
+        ax.set_xticks(range(len(dates)))
+        ax.set_xticklabels([d.strftime('%d %b.') for d in dates])
+        ax.xaxis.set_major_locator(AutoLocator())
+        plt.setp(ax.get_xticklabels(), rotation=45, ha='center')
+
 plt.show()
 
 print("\n" + "="*60)
