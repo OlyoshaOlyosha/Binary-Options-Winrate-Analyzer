@@ -137,12 +137,28 @@ elif filter_choice == '2':
 
 print(f"\nЗагружено сделок: {len(df)}")
 
+# ====================== ВВОД ТЕКУЩЕГО БАЛАНСА ======================
+while True:
+    try:
+        current_balance = float(input("\nВведите ваш текущий баланс: ").strip().replace(',', '.'))
+        if current_balance <= 0:
+            raise ValueError("Баланс должен быть положительным")
+        break
+    except ValueError:
+        print(f"{Fore.RED}Ошибка: Введите число больше 0.{Style.RESET_ALL}")
+
 # ====================== ПРЕДОБРАБОТКА ======================
 df['Время открытия'] = pd.to_datetime(df['Время открытия'])
 df['Дата'] = df['Время открытия'].dt.date
 df['Час'] = df['Время открытия'].dt.hour
 df['Результат'] = df['Прибыль'].apply(lambda x: 'Win' if x > 0 else 'Loss')
 df['Прибыль числом'] = df['Прибыль'].astype(float)
+
+# Расчёт прогресса баланса (от обратного)
+df_sorted = df.sort_values('Время открытия', ascending=False).reset_index(drop=True)
+df_sorted['Кумулятивная прибыль'] = df_sorted['Прибыль числом'].cumsum()
+df_sorted['Баланс'] = current_balance - df_sorted['Кумулятивная прибыль']
+df_sorted = df_sorted.sort_values('Время открытия').reset_index(drop=True)
 
 # ====================== ОСНОВНЫЕ МЕТРИКИ ======================
 total_trades = len(df)
@@ -244,7 +260,7 @@ print("="*60 + "\n")
 
 # ====================== ГРАФИКИ ======================
 df = df.sort_values('Время открытия').reset_index(drop=True)
-fig = plt.figure()
+fig = plt.figure(figsize=(18, 12))  # Увеличиваем размер для 3x3 сетки
 
 # Цвета из конфига
 COLOR_WIN = config.get('colors', 'win')
@@ -253,7 +269,7 @@ COLOR_LINE = config.get('colors', 'line')
 COLOR_THRESHOLD = config.get('colors', 'threshold')
 
 # 1. Винрейт по дням (линия прогресса)
-plt.subplot(2, 3, 1)
+plt.subplot(3, 3, 1)
 plt.plot(day_stats.index, day_stats['Винрейт'], marker='o', color=COLOR_WIN, linewidth=3, markersize=10, markeredgecolor='white', markeredgewidth=1.5)
 plt.axhline(y=50, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7, label='50% порог')
 plt.title('Винрейт по дням', fontsize=15, fontweight='bold', pad=15)
@@ -265,7 +281,7 @@ plt.legend(fontsize=10)
 plt.ylim(0, 100)
 
 # 2. Скользящий винрейт (по N% сделок)
-plt.subplot(2, 3, 2)
+plt.subplot(3, 3, 2)
 df['Win_binary'] = (df['Результат'] == 'Win').astype(int)
 rolling_window = max(int(len(df) * config.getint('analysis_settings', 'rolling_window_percent') / 100), 1)
 df['Rolling_WR'] = df['Win_binary'].rolling(window=rolling_window, min_periods=1).mean() * 100
@@ -278,7 +294,7 @@ plt.grid(True, alpha=0.5)
 plt.ylim(0, 100)
 
 # 3. Топ-N активов по винрейту
-plt.subplot(2, 3, 3)
+plt.subplot(3, 3, 3)
 top_assets = asset_stats.head(config.getint('analysis_settings', 'top_assets_count'))[::-1]
 colors = [COLOR_WIN if x >= 50 else COLOR_LOSS for x in top_assets['Винрейт']]
 plt.barh(range(len(top_assets)), top_assets['Винрейт'], color=colors, edgecolor='white', linewidth=1.5)
@@ -290,7 +306,7 @@ plt.xlim(0, 100)
 plt.grid(True, alpha=0.5, axis='x')
 
 # 4. Распределение Win/Loss
-plt.subplot(2, 3, 4)
+plt.subplot(3, 3, 4)
 win_count = len(df[df['Результат'] == 'Win'])
 loss_count = len(df[df['Результат'] == 'Loss'])
 wedges, texts, autotexts = plt.pie([win_count, loss_count], labels=['Win', 'Loss'], autopct='%1.1f%%', 
@@ -299,7 +315,7 @@ wedges, texts, autotexts = plt.pie([win_count, loss_count], labels=['Win', 'Loss
 plt.title(f'Распределение Win/Loss\n({win_count}W / {loss_count}L)', fontsize=15, fontweight='bold', pad=15)
 
 # 5. Винрейт по часам дня
-plt.subplot(2, 3, 5)
+plt.subplot(3, 3, 5)
 hour_all_stats = df.groupby('Час').agg(
     Винрейт=('Результат', lambda x: (x=='Win').mean()*100)
 ).round(2)
@@ -313,7 +329,7 @@ plt.ylim(0, 100)
 plt.grid(True, alpha=0.5, axis='y')
 
 # 6. Прогресс по неделям (если несколько недель)
-plt.subplot(2, 3, 6)
+plt.subplot(3, 3, 6)
 df['Неделя'] = pd.to_datetime(df['Дата']).dt.isocalendar().week
 week_stats = df.groupby('Неделя').agg(
     Винрейт=('Результат', lambda x: (x=='Win').mean()*100),
@@ -336,6 +352,39 @@ else:
     plt.title('Прогресс по неделям', fontsize=15, fontweight='bold', pad=15)
     plt.xlim(0, 1)
     plt.ylim(0, 1)
+
+# 7. Прогресс баланса
+plt.subplot(3, 3, 7)
+daily_balance = df_sorted.groupby('Дата')['Баланс'].last()
+plt.plot(daily_balance.index, daily_balance.values, marker='o', color=config.get('colors', 'line'), linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
+plt.axhline(y=current_balance, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7, label=f'Текущий баланс: {current_balance}')
+plt.title('Прогресс баланса', fontsize=15, fontweight='bold', pad=15)
+plt.ylabel('Баланс', fontsize=12)
+plt.xlabel('Дата', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(True, alpha=0.5)
+plt.legend(fontsize=10)
+
+# 8. Кумулятивная прибыль
+plt.subplot(3, 3, 8)
+daily_cumulative_profit = df_sorted.groupby('Дата')['Прибыль числом'].cumsum().groupby(df_sorted['Дата']).last()
+plt.plot(daily_cumulative_profit.index, daily_cumulative_profit.values, marker='o', color=COLOR_WIN, linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
+plt.axhline(y=0, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
+plt.title('Кумулятивная прибыль', fontsize=15, fontweight='bold', pad=15)
+plt.ylabel('Прибыль', fontsize=12)
+plt.xlabel('Дата', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(True, alpha=0.5)
+
+# 9. Распределение прибыли по дням
+plt.subplot(3, 3, 9)
+plt.bar(day_stats.index, day_stats['Прибыль'], color=[COLOR_WIN if x > 0 else COLOR_LOSS for x in day_stats['Прибыль']], edgecolor='white', linewidth=1.5)
+plt.axhline(y=0, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
+plt.title('Прибыль по дням', fontsize=15, fontweight='bold', pad=15)
+plt.ylabel('Прибыль', fontsize=12)
+plt.xlabel('Дата', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(True, alpha=0.5, axis='y')
 
 plt.tight_layout(pad=2.0)
 plt.show()
