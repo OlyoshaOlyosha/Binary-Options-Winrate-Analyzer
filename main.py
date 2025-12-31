@@ -67,30 +67,22 @@ plt.rcParams['ytick.color'] = 'white'
 plt.rcParams['font.size'] = config.getint('graph_settings', 'font_size')
 
 # ====================== ВЫБОР ФАЙЛОВ ======================
-# Поиск файлов в папке trades и в текущей директории
+# Поиск файлов в папке trades
 trades_folder = Path('trades')
-current_folder = Path('.')
 
-files_trades = []
-files_current = []
+files = []
 
 if trades_folder.exists():
-    files_trades = sorted([f for f in trades_folder.glob('*.xlsx')], key=lambda x: x.stat().st_mtime, reverse=True)[:config.getint('analysis_settings', 'max_files_to_show')]
-
-files_current = sorted([f for f in current_folder.glob('*.xlsx') if f.parent == current_folder], key=lambda x: x.stat().st_mtime, reverse=True)[:config.getint('analysis_settings', 'max_files_to_show')]
-
-files = files_trades + files_current
-files = sorted(files, key=lambda x: x.stat().st_mtime, reverse=True)[:config.getint('analysis_settings', 'max_files_to_show')]
+    files = sorted([f for f in trades_folder.glob('*.xlsx')], key=lambda x: x.stat().st_mtime, reverse=True)[:config.getint('analysis_settings', 'max_files_to_show')]
 
 if not files:
-    print("Нет xlsx файлов ни в папке trades, ни в текущей директории!")
+    print("Нет xlsx файлов в папке trades!")
     exit()
 
-print(f"Найдено файлов: {len(files_trades)} в папке trades, {len(files_current)} в текущей директории")
+print(f"Найдено файлов: {len(files)} в папке trades")
 print("\nДоступные файлы (последние 5):")
 for i, f in enumerate(files, 1):
-    location = "[trades]" if f in files_trades else "[текущая]"
-    print(f"[{i}] {location} {f.name}")
+    print(f"[{i}] {f.name}")
 
 while True:
     selection = input("\nВыберите файлы (например: 1 или 1,2,3): ").strip()
