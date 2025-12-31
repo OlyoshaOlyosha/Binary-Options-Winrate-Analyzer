@@ -73,7 +73,6 @@ def load_data(selected_files: list[Path]) -> pd.DataFrame:
         df_list.append(temp_df)
 
     df = pd.concat(df_list, ignore_index=True)
-    print(f"\nЗагружено сделок: {len(df)}")
     return df
 
 def apply_otc_filter(df: pd.DataFrame, filter_choice: str) -> pd.DataFrame:
@@ -106,6 +105,7 @@ def preprocess_data(df: pd.DataFrame, current_balance: float) -> tuple[pd.DataFr
     df['Час'] = df['Время открытия'].dt.hour
     df['Результат'] = df['Прибыль'].apply(lambda x: 'Win' if x > 0 else 'Loss')
     df['Прибыль числом'] = df['Прибыль'].astype(float)
+    df['Экспирация_сек'] = df['Экспирация'].str.slice(start=1).astype(int)
 
     # Расчёт прогресса баланса от текущего значения назад
     df_sorted = df.sort_values('Время открытия', ascending=False).reset_index(drop=True)
@@ -114,3 +114,29 @@ def preprocess_data(df: pd.DataFrame, current_balance: float) -> tuple[pd.DataFr
     df_sorted = df_sorted.sort_values('Время открытия').reset_index(drop=True)
 
     return df, df_sorted
+
+def choose_expiration_filter(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Простой фильтр по экспирации.
+    Пользователь вводит секунды или нажимает Enter → всё.
+    Возвращает отфильтрованный df.
+    """
+    while True:
+        user_input = input("\nФильтр по экспирации (введите секунды, например 60, или Enter = всё): ").strip()
+        
+        if user_input == "":  # Enter = всё
+            print(f"{Fore.CYAN}→ Экспирация: все{Style.RESET_ALL}")
+            return df
+        
+        try:
+            seconds = int(user_input)
+            if seconds <= 0:
+                raise ValueError
+            filtered_df = df[df['Экспирация_сек'] == seconds]
+            if len(filtered_df) == 0:
+                print(f"{Fore.YELLOW}Предупреждение: Нет сделок с экспирацией {seconds} сек. Попробуйте снова.{Style.RESET_ALL}")
+                continue
+            print(f"{Fore.CYAN}→ Экспирация: {seconds} секунд ({len(filtered_df)} сделок){Style.RESET_ALL}")
+            return filtered_df
+        except ValueError:
+            print(f"{Fore.RED}Ошибка: Введите положительное число секунд или просто нажмите Enter.{Style.RESET_ALL}")
