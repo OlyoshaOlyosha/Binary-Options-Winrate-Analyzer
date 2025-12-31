@@ -348,10 +348,15 @@ plt.xticks(range(24), [str(h) for h in range(24)], rotation=0, ha='center')
 # 6. Прогресс по неделям (если несколько недель)
 plt.subplot(3, 3, 6)
 df['Неделя'] = pd.to_datetime(df['Дата']).dt.isocalendar().week
+
+# Сохраняем хронологический порядок недель
+week_order = df.groupby('Неделя')['Дата'].min().sort_values()
 week_stats = df.groupby('Неделя').agg(
     Винрейт=('Результат', lambda x: (x=='Win').mean()*100),
     Сделок=('Результат', 'count')
 ).round(2)
+week_stats = week_stats.loc[week_order.index]
+
 if len(week_stats) > 1:
     plt.plot(range(len(week_stats)), week_stats['Винрейт'], marker='o', color=config.get('colors', 'week_progress'), linewidth=4, markersize=12, markeredgecolor='white', markeredgewidth=2)
     plt.axhline(y=50, color=COLOR_THRESHOLD, linestyle='--', linewidth=2, alpha=0.7)
