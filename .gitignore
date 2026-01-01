@@ -208,3 +208,5 @@ __marimo__/
 
 # Other
 trades/*.xlsx
+outputs/*
+!outputs/*.txt
