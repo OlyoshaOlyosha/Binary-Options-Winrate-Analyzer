@@ -16,6 +16,7 @@ from analyzer.data_processor import (
     select_files,
     choose_expiration_filter,
     handle_currency_conversion,
+    choose_time_period_filter,
 )
 from analyzer.plots import show_all_charts
 from analyzer.statistics import (
@@ -50,6 +51,8 @@ def main() -> None:
             break
         else:
             print(f"{Fore.YELLOW}После фильтра по экспирации не осталось сделок. Попробуйте другой вариант.{Style.RESET_ALL}")
+
+    df = choose_time_period_filter(df)
 
     # Обновляем df_sorted под отфильтрованные данные
     df_sorted = df.sort_values('Время открытия', ascending=False).reset_index(drop=True)

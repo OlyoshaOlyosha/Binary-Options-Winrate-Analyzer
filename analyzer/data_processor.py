@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime, timedelta
+from dateutil import parser
 import pandas as pd
 from pathlib import Path
 from colorama import Fore, Style
@@ -259,3 +260,77 @@ def handle_currency_conversion(df: pd.DataFrame) -> pd.DataFrame:
 
     print(f"{Fore.GREEN}→ Все данные переведены в {target_currency}{Style.RESET_ALL}")
     return df
+
+def choose_time_period_filter(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Фильтр по временному периоду с удобным вводом и подтверждением.
+    Enter = без ограничения.
+    Возвращает отфильтрованный df.
+    """
+    if len(df) == 0:
+        return df
+
+    # Минимальная и максимальная даты в данных
+    min_date = df['Время открытия'].min()
+    max_date = df['Время открытия'].max()
+
+    while True:
+        print("\nФильтр по периоду (опционально):")
+        from_input = input("От (ГГГГ.ММ.ДД ЧЧ:ММ, или только дата/время, Enter=с начала): ").strip()
+        to_input = input("До (аналогично, Enter=до текущего времени): ").strip()
+
+        # Парсим ввод
+        start_dt = None
+        end_dt = None
+
+        if from_input:
+            try:
+                parsed = parser.parse(from_input, dayfirst=True, yearfirst=True)
+                # Если ввели только время — применяем к минимальной дате
+                if parsed.date() == datetime.today().date() and parsed.time() != datetime.min.time():
+                    parsed = parsed.replace(year=min_date.year, month=min_date.month, day=min_date.day)
+                start_dt = parsed
+            except Exception:
+                print(f"{Fore.RED}Не удалось распознать 'От': {from_input}. Попробуйте снова.{Style.RESET_ALL}")
+                continue
+
+        if to_input:
+            try:
+                parsed = parser.parse(to_input, dayfirst=True, yearfirst=True)
+                # Если только время — применяем к максимальной дате + конец дня
+                if parsed.date() == datetime.today().date() and parsed.time() != datetime.min.time():
+                    parsed = parsed.replace(year=max_date.year, month=max_date.month, day=max_date.day)
+                # До конца дня
+                end_dt = parsed.replace(hour=23, minute=59, second=59)
+            except Exception:
+                print(f"{Fore.RED}Не удалось распознать 'До': {to_input}. Попробуйте снова.{Style.RESET_ALL}")
+                continue
+
+        # Применяем фильтр
+        filtered_df = df.copy()
+        if start_dt:
+            filtered_df = filtered_df[filtered_df['Время открытия'] >= start_dt]
+        if end_dt:
+            filtered_df = filtered_df[filtered_df['Время открытия'] <= end_dt]
+
+        if len(filtered_df) == 0:
+            print(f"{Fore.YELLOW}После фильтра по периоду не осталось сделок. Попробуйте другой диапазон.{Style.RESET_ALL}")
+            continue
+
+        # Формируем красивый вывод периода
+        from_str = start_dt.strftime("%Y-%m-%d %H:%M") if start_dt else "с начала"
+        to_str = end_dt.strftime("%Y-%m-%d %H:%M") if end_dt else "до текущего времени"
+
+        print(f"\n{Fore.CYAN}→ Анализ за период: с {from_str} по {to_str}{Style.RESET_ALL}")
+        confirm = input("Верно? (Enter=да, иначе введите новый диапазон в формате От;До): ").strip()
+
+        if confirm == "":
+            return filtered_df
+
+        # Если не да — пытаемся распознать как "От;До"
+        if ';' in confirm:
+            parts = confirm.split(';', 1)
+            from_input = parts[0].strip()
+            to_input = parts[1].strip() if len(parts) > 1 else ""
+        else:
+            continue
