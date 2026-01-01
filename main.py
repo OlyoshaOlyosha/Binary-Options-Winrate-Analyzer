@@ -5,8 +5,8 @@ Binary Options Winrate Analyzer
 
 from colorama import Fore, Style, init
 
-from analyzer.config import __app_name__, __version__
-from analyzer.console_output import print_all_statistics
+from analyzer.config import config, __app_name__, __version__
+from analyzer.console_output import print_all_statistics, save_statistics_to_md
 from analyzer.data_processor import (
     apply_otc_filter,
     choose_otc_filter,
@@ -65,14 +65,19 @@ def main() -> None:
     # Вывод результатов
     print_all_statistics(df, main_metrics, day_stats, asset_stats)
 
-    # Переход к графикам
-    print("\n" + "=" * 60)
-    print(f"{Fore.YELLOW}📊 ОТКРЫВАЮ ОКНО С ГРАФИКАМИ...{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}Дополнительная визуализация данных в графическом виде.{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}Закройте окно с графиками, чтобы завершить программу.{Style.RESET_ALL}")
-    print("=" * 60 + "\n")
-
-    show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance)
+    # Сохранение отчёта
+    auto_save = config.getboolean('save_settings', 'auto_save', fallback=False)
+    
+    should_save = auto_save
+    if not auto_save:
+        answer = input("\n💾 Сохранить отчёт (статистика + график)? (да/нет, Enter=нет): ").strip().lower()
+        should_save = answer in ['да', 'yes', 'y', 'д', '+']
+    
+    if should_save:
+        save_statistics_to_md(main_metrics, day_stats, asset_stats, df)
+        show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=True)
+    else:
+        show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=False)
 
     # Завершение
     print("\n" + "=" * 60)

@@ -1,15 +1,23 @@
-# analyzer/plots.py
-
+from datetime import datetime
+from colorama import Fore, Style
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.ticker import AutoLocator
 
 from analyzer.config import config, apply_plot_style
 
-def show_all_charts(df: pd.DataFrame, df_sorted: pd.DataFrame, day_stats: pd.DataFrame, asset_stats: pd.DataFrame, current_balance: float):
+def show_all_charts(df: pd.DataFrame, df_sorted: pd.DataFrame, day_stats: pd.DataFrame, asset_stats: pd.DataFrame, current_balance: float, save_graph: bool = False):
     """
     Рисует все 9 графиков в одном окне 3x3
     """
+
+    # Переход к графикам
+    print("\n" + "=" * 60)
+    print(f"{Fore.YELLOW}📊 ОТКРЫВАЮ ОКНО С ГРАФИКАМИ...{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Дополнительная визуализация данных в графическом виде.{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Закройте окно с графиками, чтобы завершить программу.{Style.RESET_ALL}")
+    print("=" * 60 + "\n")
+
     # Применяем стили из конфига (тёмная тема, размеры, цвета)
     apply_plot_style()
 
@@ -161,5 +169,12 @@ def show_all_charts(df: pd.DataFrame, df_sorted: pd.DataFrame, day_stats: pd.Dat
             ax.set_xticklabels([d.strftime('%d %b.') for d in dates])
             ax.xaxis.set_major_locator(AutoLocator())
             plt.setp(ax.get_xticklabels(), rotation=45, ha='center')
+
+    # Сохранение графика
+    if save_graph:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"outputs/{timestamp} график.png"
+        fig.savefig(filename, dpi=300, bbox_inches='tight', facecolor=fig.get_facecolor())
+        print(f"{Fore.GREEN}📊 График сохранён: {filename}{Style.RESET_ALL}")
 
     plt.show()
