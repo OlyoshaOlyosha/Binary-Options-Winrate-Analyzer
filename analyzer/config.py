@@ -2,7 +2,7 @@ import configparser
 import matplotlib.pyplot as plt
 import locale
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __app_name__ = "Binary Options Winrate Analyzer"
 
 CONFIG_FILE = 'analyzer_config.ini'
