@@ -15,6 +15,7 @@ from analyzer.data_processor import (
     preprocess_data,
     select_files,
     choose_expiration_filter,
+    handle_currency_conversion,
 )
 from analyzer.plots import show_all_charts
 from analyzer.statistics import (
@@ -39,6 +40,7 @@ def main() -> None:
 
     current_balance = get_current_balance()
     df, df_sorted = preprocess_data(df, current_balance)
+    df = handle_currency_conversion(df)
     
     while True:
         df_filtered = choose_expiration_filter(df)

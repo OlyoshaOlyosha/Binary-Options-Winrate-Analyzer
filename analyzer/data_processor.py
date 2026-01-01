@@ -1,8 +1,14 @@
+import requests
+from datetime import datetime, timedelta
 import pandas as pd
 from pathlib import Path
 from colorama import Fore, Style
 
 from analyzer.config import config
+
+# Кэш курсов: {(base, target): (rate, timestamp)}
+_exchange_rate_cache = {}
+_CACHE_TTL = timedelta(minutes=5)  # 5 минут
 
 def select_files() -> list[Path]:
     """Ищет XLSX-файлы в папке trades и позволяет пользователю выбрать нужные"""
@@ -140,3 +146,116 @@ def choose_expiration_filter(df: pd.DataFrame) -> pd.DataFrame:
             return filtered_df
         except ValueError:
             print(f"{Fore.RED}Ошибка: Введите положительное число секунд или просто нажмите Enter.{Style.RESET_ALL}")
+
+def get_exchange_rate(base_currency: str, target_currency: str) -> float | None:
+    """
+    Получает курс: сколько target_currency за 1 base_currency
+    Использует кэш (5 минут)
+    """
+    key = (base_currency.upper(), target_currency.upper())
+    
+    # Проверяем кэш
+    if key in _exchange_rate_cache:
+        rate, timestamp = _exchange_rate_cache[key]
+        if datetime.now() - timestamp < _CACHE_TTL:
+            return rate
+
+    url = f"https://api.exchangerate-api.com/v4/latest/{base_currency.upper()}"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        rate = data['rates'].get(target_currency.upper())
+        if rate is not None:
+            _exchange_rate_cache[key] = (rate, datetime.now())
+            return rate
+    except Exception:
+        pass
+    return None
+
+
+def handle_currency_conversion(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Обрабатывает разные валюты: предлагает выбрать основную и переводит всё в неё.
+    Курс: 1 основная = N вторичная
+    """
+    currencies = df['Валюта'].dropna().unique()
+    if len(currencies) <= 1:
+        return df
+
+    print(f"\n{Fore.YELLOW}Обнаружены разные валюты: {', '.join(currencies)}{Style.RESET_ALL}")
+
+    # Выбор основной валюты
+    print("\nВыберите основную валюту (всё будет переведено в неё):")
+    for i, curr in enumerate(currencies, 1):
+        print(f"[{i}] {curr}")
+    
+    while True:
+        try:
+            idx = int(input("→ ").strip()) - 1
+            if 0 <= idx < len(currencies):
+                target_currency = currencies[idx]
+                break
+        except ValueError:
+            pass
+        print(f"{Fore.RED}Введите номер от 1 до {len(currencies)}{Style.RESET_ALL}")
+
+    print(f"\n{Fore.CYAN}→ Основная валюта: {target_currency}{Style.RESET_ALL}")
+
+    # Словарь курсов
+    rates = {}
+
+    for curr in currencies:
+        if curr == target_currency:
+            rates[curr] = 1.0
+            continue
+
+        print(f"\nОпределяем курс: 1 {target_currency} = ? {curr}")
+
+        # Пытаемся получить автоматически (сколько curr за 1 target)
+        rate_auto = get_exchange_rate(target_currency, curr)
+
+        if rate_auto is not None:
+            print(f"Текущий курс: 1 {target_currency} = {rate_auto:.4f} {curr}")
+            answer = input("Согласны? (Enter=да, иначе введите свой): ").strip()
+            if answer == "":
+                rate = rate_auto
+            else:
+                rate = None
+        else:
+            print(f"{Fore.YELLOW}Не удалось получить курс автоматически.{Style.RESET_ALL}")
+            rate = None
+
+        # Ручной ввод
+        while rate is None:
+            manual_input = input(f"Введите курс (1 {target_currency} = сколько {curr}): ").strip().replace(',', '.')
+            try:
+                rate = float(manual_input)
+                if rate <= 0:
+                    raise ValueError
+                print(f"→ Принято: 1 {target_currency} = {rate:.4f} {curr}")
+            except ValueError:
+                print(f"{Fore.RED}Введите положительное число{Style.RESET_ALL}")
+                rate = None
+
+        rates[curr] = rate
+
+    # Конвертация
+    print(f"\n{Fore.CYAN}Конвертируем прибыли в {target_currency}...{Style.RESET_ALL}")
+
+    def convert_profit(row):
+        original_curr = row['Валюта']
+        profit = row['Прибыль числом']
+        rate = rates.get(original_curr, 1.0)
+        return profit / rate
+
+    df['Прибыль числом'] = df.apply(convert_profit, axis=1)
+
+    df['Размер сделки'] = df['Размер сделки'].astype(float)
+    df['Размер сделки'] = df.apply(lambda row: row['Размер сделки'] / rates.get(row['Валюта'], 1.0), axis=1)
+
+    # Обновляем валюту
+    df['Валюта'] = target_currency
+
+    print(f"{Fore.GREEN}→ Все данные переведены в {target_currency}{Style.RESET_ALL}")
+    return df
