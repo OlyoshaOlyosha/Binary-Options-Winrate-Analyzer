@@ -6,7 +6,7 @@ from matplotlib.ticker import AutoLocator
 
 from analyzer.config import config, apply_plot_style
 
-def show_all_charts(df: pd.DataFrame, df_sorted: pd.DataFrame, day_stats: pd.DataFrame, asset_stats: pd.DataFrame):
+def show_all_charts(df: pd.DataFrame, df_sorted: pd.DataFrame, day_stats: pd.DataFrame, asset_stats: pd.DataFrame, current_balance: float):
     """
     Рисует все 9 графиков в одном окне 3x3
     """
@@ -121,8 +121,8 @@ def show_all_charts(df: pd.DataFrame, df_sorted: pd.DataFrame, day_stats: pd.Dat
     # 7. Прогресс баланса
     plt.subplot(3, 3, 7)
     daily_balance = df_sorted.groupby('Дата')['Баланс'].last()
-    plt.axhline(y=df_sorted['Баланс'].iloc[0], color=COLOR_THRESHOLD, linestyle='--', linewidth=2,
-                label=f'Текущий баланс: {df_sorted["Баланс"].iloc[0]:.2f}')
+    plt.axhline(y=current_balance, color=COLOR_THRESHOLD, linestyle='--', linewidth=2,
+                label=f'Текущий баланс: {current_balance:.2f}')
     plt.plot(range(len(dates)), daily_balance.loc[dates], marker='o', color=COLOR_LINE,
              linewidth=3, markersize=8, markeredgecolor='white', markeredgewidth=1.5)
     plt.title('Прогресс баланса', fontsize=15, fontweight='bold', pad=15)

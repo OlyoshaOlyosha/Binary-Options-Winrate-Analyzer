@@ -72,7 +72,7 @@ def main() -> None:
     print(f"{Fore.CYAN}Закройте окно с графиками, чтобы завершить программу.{Style.RESET_ALL}")
     print("=" * 60 + "\n")
 
-    show_all_charts(df, df_sorted, day_stats, asset_stats)
+    show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance)
 
     # Завершение
     print("\n" + "=" * 60)
