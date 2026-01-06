@@ -65,7 +65,7 @@ def print_hour_statistics(df: pd.DataFrame):
             print(f"  Час {hour:2}  |  Сделок: {int(row['Сделок']):2}  |  Винрейт: {wr_colored:20}  |  Прибыль: {profit_colored}")
 
 
-def save_statistics_to_md(main_metrics: dict, day_stats: pd.DataFrame, asset_stats: pd.DataFrame, df: pd.DataFrame):
+def save_statistics_to_md(main_metrics: dict, day_stats: pd.DataFrame, asset_stats: pd.DataFrame, df: pd.DataFrame, selected_files: list):
     """Сохраняет полную консольную статистику в Markdown файл в папку outputs"""
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -74,7 +74,14 @@ def save_statistics_to_md(main_metrics: dict, day_stats: pd.DataFrame, asset_sta
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# 📊 Анализ сделок — {timestamp}\n\n")
-        f.write(f"**Всего сделок:** {main_metrics['total_trades']}\n\n")
+        f.write("## Используемые файлы\n\n")
+        
+        for file in selected_files:
+            file_str = str(file)
+            file_name = file_str.replace("trades\\", "").replace("trades/", "")
+            f.write(f"- {file_name}\n")
+
+        f.write(f"\n**Всего сделок:** {main_metrics['total_trades']}\n\n")
         
         f.write("## Общая статистика\n\n")
         f.write(f"- Винрейт: {main_metrics['winrate']:.2f}%\n")

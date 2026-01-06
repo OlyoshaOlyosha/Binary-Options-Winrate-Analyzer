@@ -79,7 +79,7 @@ def main() -> None:
         should_save = answer in ['да', 'yes', 'y', 'д', '+']
     
     if should_save:
-        save_statistics_to_md(main_metrics, day_stats, asset_stats, df)
+        save_statistics_to_md(main_metrics, day_stats, asset_stats, df, selected_files)
         show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=True)
     else:
         show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=False)
