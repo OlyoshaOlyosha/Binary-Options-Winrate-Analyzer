@@ -210,3 +210,4 @@ __marimo__/
 trades/*.xlsx
 outputs/*
 !outputs/*.txt
+.*rules
