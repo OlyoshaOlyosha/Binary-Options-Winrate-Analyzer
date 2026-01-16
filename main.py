@@ -1,22 +1,24 @@
 """
-Binary Options Winrate Analyzer
-Мощный инструмент анализа сделок на Pocket Option.
+Binary Options Winrate Analyzer.
+
+Основной модуль входа в приложение. Координирует процесс загрузки данных,
+применения фильтров, расчета статистики и визуализации результатов.
 """
 
 from colorama import Fore, Style, init
 
-from analyzer.config import config, __app_name__, __version__
+from analyzer.config import __app_name__, __version__, config
 from analyzer.console_output import print_all_statistics, save_statistics_to_md
 from analyzer.data_processor import (
     apply_otc_filter,
+    choose_expiration_filter,
     choose_otc_filter,
+    choose_time_period_filter,
     get_current_balance,
+    handle_currency_conversion,
     load_data,
     preprocess_data,
     select_files,
-    choose_expiration_filter,
-    handle_currency_conversion,
-    choose_time_period_filter,
 )
 from analyzer.plots import show_all_charts
 from analyzer.statistics import (
@@ -25,14 +27,15 @@ from analyzer.statistics import (
     calculate_main_metrics,
 )
 
-# Инициализация colorama (для цветного вывода в Windows)
+# Инициализация colorama для корректной работы ANSI-цветов в терминале Windows
 init(autoreset=True)
 
+
 def main() -> None:
-    """Основная функция запуска анализа."""
+    """Управляет жизненным циклом программы: от выбора файлов до вывода графиков."""
     print(f"{Fore.CYAN}{__app_name__}{Style.RESET_ALL} {Fore.YELLOW}v{__version__}{Style.RESET_ALL}")
 
-    # Загрузка и подготовка данных
+    # --- 1. Загрузка и первичная обработка ---
     selected_files = select_files()
     filter_choice = choose_otc_filter()
 
@@ -42,49 +45,47 @@ def main() -> None:
     current_balance = get_current_balance()
     df, df_sorted = preprocess_data(df, current_balance)
     df = handle_currency_conversion(df)
-    
+
+    # --- 2. Интерактивная фильтрация ---
     while True:
         df_filtered = choose_expiration_filter(df)
-        
-        if len(df_filtered) > 0:
+        if not df_filtered.empty:
             df = df_filtered
             break
-        else:
-            print(f"{Fore.YELLOW}После фильтра по экспирации не осталось сделок. Попробуйте другой вариант.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}После фильтра по экспирации не осталось сделок.{Style.RESET_ALL}")
 
     df = choose_time_period_filter(df)
 
-    # Обновляем df_sorted под отфильтрованные данные
-    df_sorted = df.sort_values('Время открытия', ascending=False).reset_index(drop=True)
-    df_sorted['Кумулятивная прибыль'] = df_sorted['Прибыль числом'].cumsum()
-    df_sorted['Баланс'] = current_balance - df_sorted['Кумулятивная прибыль']
-    df_sorted = df_sorted.sort_values('Время открытия').reset_index(drop=True)
+    # Пересчитываем прогресс баланса под финальный набор отфильтрованных данных
+    df_sorted = df.sort_values("Время открытия", ascending=False).reset_index(drop=True)
+    df_sorted["Кумулятивная прибыль"] = df_sorted["Прибыль числом"].cumsum()
+    df_sorted["Баланс"] = current_balance - df_sorted["Кумулятивная прибыль"]
+    df_sorted = df_sorted.sort_values("Время открытия").reset_index(drop=True)
 
     print(f"\nИтого после всех фильтров загружено сделок: {len(df)}")
 
-    # Расчёт статистики
+    # --- 3. Аналитический блок ---
     main_metrics = calculate_main_metrics(df)
     day_stats = calculate_day_stats(df)
     asset_stats = calculate_asset_stats(df)
 
-    # Вывод результатов
+    # Вывод сводной таблицы в консоль
     print_all_statistics(df, main_metrics, day_stats, asset_stats)
 
-    # Сохранение отчёта
-    auto_save = config.getboolean('save_settings', 'auto_save', fallback=False)
-    
+    # --- 4. Финализация и экспорт ---
+    auto_save = config.getboolean("save_settings", "auto_save", fallback=False)
     should_save = auto_save
+
     if not auto_save:
         answer = input("\n💾 Сохранить отчёт (статистика + график)? (да/нет, Enter=нет): ").strip().lower()
-        should_save = answer in ['да', 'yes', 'y', 'д', '+']
-    
+        should_save = answer in ["да", "yes", "y", "д", "+"]
+
     if should_save:
         save_statistics_to_md(main_metrics, day_stats, asset_stats, df, selected_files)
-        show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=True)
-    else:
-        show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=False)
 
-    # Завершение
+    # Вызов графического окна (save_graph передает флаг сохранения PNG)
+    show_all_charts(df, df_sorted, day_stats, asset_stats, current_balance, save_graph=should_save)
+
     print("\n" + "=" * 60)
     input("Анализ завершён! Нажмите Enter для завершения программы...")
     print("=" * 60)
