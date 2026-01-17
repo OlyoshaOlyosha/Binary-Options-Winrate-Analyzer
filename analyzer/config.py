@@ -11,7 +11,7 @@ from contextlib import suppress
 
 import matplotlib.pyplot as plt
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __app_name__ = "Binary Options Winrate Analyzer"
 
 CONFIG_FILE = "analyzer_config.ini"
