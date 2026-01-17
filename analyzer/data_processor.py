@@ -344,7 +344,7 @@ def _get_rate_for_currency(target_currency: str, curr: str) -> float:
 
 def choose_time_period_filter(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Интерактивный фильтр по диапазону дат и времени.
+    Интерактивный фильтр по диапазону дат и времени с подсказкой доступного периода.
 
     Args:
         df: DataFrame для фильтрации.
@@ -356,10 +356,21 @@ def choose_time_period_filter(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
 
+    # Определяем границы существующих данных
+    actual_min = df["Время открытия"].min()
+    actual_max = df["Время открытия"].max()
+
+    # Подготавливаем даты для парсера и для вывода в консоль
     min_date = pd.to_datetime(df["Время открытия"].min())
     now_dt = datetime.now(timezone.utc).astimezone()
 
     while True:
+        print(f"\n{Fore.YELLOW}Доступный период в файлах:{Style.RESET_ALL}")
+        print(
+            f"с {Fore.GREEN}{actual_min.strftime('%Y.%m.%d %H:%M')}{Style.RESET_ALL} "
+            f"по {Fore.GREEN}{actual_max.strftime('%Y.%m.%d %H:%M')}{Style.RESET_ALL}"
+        )
+
         print("\nФильтр по периоду (опционально):")
         from_input = input("От (Enter=с начала): ").strip()
         to_input = input("До (Enter=до текущего): ").strip()
