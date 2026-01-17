@@ -28,7 +28,12 @@ ignore = [
     "PLR2004", # Magic value used in comparison
     "D100",    # Missing docstring in public module
     "D104",    # Missing docstring in __init__.py of the tests folder
-    "ANN001",  # Mocks' arguments can be untyped.
+    "ANN001",  # Mocks' arguments can be untyped
+    "ARG001",  # Unused function argument
+    "PT011",   # Broad ValueError is fine in tests
+    "PLC0415", # Local imports for cache clearing/mocking are fine
+    "BLE001",  # Allow common exceptions to be caught in tests
+    "PLR0913", # Allow a large number of arguments (mocks) in tests
 ]
 
 [tool.pytest.ini_options]
