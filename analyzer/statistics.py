@@ -87,7 +87,7 @@ def calculate_asset_stats(df: pd.DataFrame) -> pd.DataFrame:
 
     """
     # Применяем сложный расчет серий к каждой группе активов
-    asset_stats = df.groupby("Актив").apply(calculate_asset_streaks)
+    asset_stats = df.groupby("Актив").apply(calculate_asset_streaks, include_groups=False)  # type: ignore[call-arg]
 
     # Принудительное приведение типов для корректного отображения и исключения ошибок
     asset_stats["Сделок"] = asset_stats["Сделок"].astype(int)
