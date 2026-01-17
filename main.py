@@ -47,6 +47,8 @@ def main() -> None:
     df = handle_currency_conversion(df)
 
     # --- 2. Интерактивная фильтрация ---
+    print(f"\n{Fore.MAGENTA}{' Настройка фильтров ':=^60}{Style.RESET_ALL}")
+
     while True:
         df_filtered = choose_expiration_filter(df)
         if not df_filtered.empty:
