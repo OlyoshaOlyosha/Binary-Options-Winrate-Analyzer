@@ -57,10 +57,7 @@ def main() -> None:
     df = choose_time_period_filter(df)
 
     # Пересчитываем прогресс баланса под финальный набор отфильтрованных данных
-    df_sorted = df.sort_values("Время открытия", ascending=False).reset_index(drop=True)
-    df_sorted["Кумулятивная прибыль"] = df_sorted["Прибыль числом"].cumsum()
-    df_sorted["Баланс"] = current_balance - df_sorted["Кумулятивная прибыль"]
-    df_sorted = df_sorted.sort_values("Время открытия").reset_index(drop=True)
+    _, df_sorted = preprocess_data(df, current_balance)
 
     print(f"\nИтого после всех фильтров загружено сделок: {len(df)}")
 
