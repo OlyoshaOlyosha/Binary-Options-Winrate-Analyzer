@@ -53,7 +53,8 @@ def print_asset_statistics(asset_stats: pd.DataFrame) -> None:
         # Используем фиксированную ширину колонок для выравнивания таблицы в консоли
         print(
             f"{asset:20} | Сделок: {int(row['Сделок']):3} | Винрейт: {wr_colored:20} | Прибыль: {profit_colored:20} "
-            f"| Серия_вин: {Fore.GREEN}{int(row['Серия_вин'])}{Style.RESET_ALL} | Серия_лосс: {Fore.RED}{int(row['Серия_лосс'])}{Style.RESET_ALL}"
+            f"| Серия_вин: {Fore.GREEN}{int(row['Серия_вин'])}{Style.RESET_ALL} | "
+            f"Серия_лосс: {Fore.RED}{int(row['Серия_лосс'])}{Style.RESET_ALL}"
         )
 
 
@@ -82,7 +83,8 @@ def print_hour_statistics(df: pd.DataFrame) -> None:
             wr_colored = color_winrate(row["Винрейт"])
             profit_colored = color_profit(row["Прибыль"])
             print(
-                f"  Час {hour:2}  |  Сделок: {int(row['Сделок']):2}  |  Винрейт: {wr_colored:20}  |  Прибыль: {profit_colored}"
+                f"  Час {hour:2}  |  Сделок: {int(row['Сделок']):2}  |  Винрейт: {wr_colored:20}  |  "
+                f"Прибыль: {profit_colored}"
             )
 
 
@@ -131,7 +133,8 @@ def save_statistics_to_md(
         for date_val, row in day_stats.iterrows():
             profit_sign = "+" if row["Прибыль"] > 0 else ""
             f.write(
-                f"| {date_val} | {int(row['Сделок'])}    | {row['Винрейт']:.2f}%   | {profit_sign}{row['Прибыль']:.2f} |\n"
+                f"| {date_val} | {int(row['Сделок'])}    | {row['Винрейт']:.2f}%   | "
+                f"{profit_sign}{row['Прибыль']:.2f} |\n"
             )
         f.write("\n")
 
@@ -141,7 +144,8 @@ def save_statistics_to_md(
         for asset, row in asset_stats.iterrows():
             profit_sign = "+" if row["Прибыль"] > 0 else ""
             f.write(
-                f"| {asset:18} | {int(row['Сделок']):6} | {row['Винрейт']:.2f}%   | {profit_sign}{row['Прибыль']:.2f} | {int(row['Серия_вин']):9} | {int(row['Серия_лосс']):10} |\n"
+                f"| {asset:18} | {int(row['Сделок']):6} | {row['Винрейт']:.2f}%   | "
+                f"{profit_sign}{row['Прибыль']:.2f} | {int(row['Серия_вин']):9} | {int(row['Серия_лосс']):10} |\n"
             )
         f.write("\n")
 
