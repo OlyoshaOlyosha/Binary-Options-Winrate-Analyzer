@@ -111,11 +111,38 @@ def choose_otc_filter() -> str:
 
 
 def load_data(selected_files: list[Path]) -> pd.DataFrame:
-    """Загружает и объединяет несколько Excel-файлов в единый DataFrame."""
+    """
+    Загружает и объединяет Excel-файлы, нормализуя названия колонок.
+
+    Использует позиционное сопоставление столбцов для поддержки файлов на разных языках
+    (например, RU/EN), сохраняя при этом внутренний стандарт именования.
+    """
+    # Ожидаемая структура столбцов согласно экспорту Pocket Option
+    standard_columns = [
+        "Направление",
+        "Сделка",
+        "Экспирация",
+        "Актив",
+        "Время открытия",
+        "Время закрытия",
+        "Цена открытия",
+        "Цена закрытия",
+        "Размер сделки",
+        "Прибыль",
+        "Валюта",
+    ]
+
     df_list = []
     for file in selected_files:
         temp_df = pd.read_excel(file)
-        # Удаляем лишние пробелы в названиях колонок (защита от неправильного экспорта)
+
+        # Валидация структуры: переименование только если файл содержит необходимый минимум колонок
+        if len(temp_df.columns) >= len(standard_columns):
+            # Маппинг текущих имен колонок на стандартные по их индексам
+            mapping = {temp_df.columns[i]: standard_columns[i] for i in range(len(standard_columns))}
+            temp_df = temp_df.rename(columns=mapping)
+
+        # Очистка заголовков от невидимых символов и пробелов
         temp_df.columns = temp_df.columns.str.strip()
         df_list.append(temp_df)
 
