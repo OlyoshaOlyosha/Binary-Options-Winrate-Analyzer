@@ -90,12 +90,13 @@ def test_get_exchange_rate_network_error(mock_get):
 def test_load_data_with_messy_columns(tmp_path):
     """Проверяет очистку имен колонок от лишних пробелов при загрузке из Excel."""
     file = tmp_path / "messy.xlsx"
-    df = pd.DataFrame({"  Результат  ": ["Win"], " Прибыль ": [10]})
+    df = pd.DataFrame({"  Сделка  ": [1], "  Результат  ": ["Win"], " Прибыль ": [10]})
     df.to_excel(file, index=False)
 
     loaded_df = load_data([file])
     assert "Результат" in loaded_df.columns
     assert "Прибыль" in loaded_df.columns
+    assert "Сделка" in loaded_df.columns
 
 
 def test_preprocess_data_empty_strings():
