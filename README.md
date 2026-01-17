@@ -1,6 +1,6 @@
 # 📊 Binary Options Winrate Analyzer
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
 ![Version](https://img.shields.io/github/v/release/OlyoshaOlyosha/Binary-Options-Winrate-Analyzer?label=Version&color=orange)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)
 
