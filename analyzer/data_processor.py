@@ -112,10 +112,10 @@ def choose_otc_filter() -> str:
 
 def load_data(selected_files: list[Path]) -> pd.DataFrame:
     """
-    Загружает и объединяет Excel-файлы, нормализуя названия колонок.
+    Загружает и объединяет Excel-файлы, нормализуя названия колонок и удаляя дубликаты.
 
     Использует позиционное сопоставление столбцов для поддержки файлов на разных языках
-    (например, RU/EN), сохраняя при этом внутренний стандарт именования.
+    (например, RU/EN). После объединения удаляет повторяющиеся сделки по их ID.
     """
     # Ожидаемая структура столбцов согласно экспорту Pocket Option
     standard_columns = [
@@ -136,17 +136,27 @@ def load_data(selected_files: list[Path]) -> pd.DataFrame:
     for file in selected_files:
         temp_df = pd.read_excel(file)
 
-        # Валидация структуры: переименование только если файл содержит необходимый минимум колонок
+        # Валидация структуры и нормализация имен колонок
         if len(temp_df.columns) >= len(standard_columns):
-            # Маппинг текущих имен колонок на стандартные по их индексам
             mapping = {temp_df.columns[i]: standard_columns[i] for i in range(len(standard_columns))}
             temp_df = temp_df.rename(columns=mapping)
 
-        # Очистка заголовков от невидимых символов и пробелов
         temp_df.columns = temp_df.columns.str.strip()
         df_list.append(temp_df)
 
-    return pd.concat(df_list, ignore_index=True)
+    # Объединяем все данные в один DataFrame
+    full_df = pd.concat(df_list, ignore_index=True)
+
+    # --- Блок удаления дубликатов сделок ---
+    initial_count = len(full_df)
+    # Удаляем дубликаты, основываясь на уникальном хэше сделки
+    full_df = full_df.drop_duplicates(subset=["Сделка"], keep="first")
+    duplicates_count = initial_count - len(full_df)
+
+    if duplicates_count > 0:
+        print(f"\n{Fore.YELLOW}Внимание: обнаружено и удалено дубликатов сделок: {duplicates_count}{Style.RESET_ALL}")
+
+    return full_df
 
 
 def apply_otc_filter(df: pd.DataFrame, filter_choice: str) -> pd.DataFrame:
