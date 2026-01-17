@@ -211,3 +211,4 @@ trades/*.xlsx
 outputs/*
 !outputs/*.txt
 .*rules
+.vscode/
